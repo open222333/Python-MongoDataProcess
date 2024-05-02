@@ -1,6 +1,10 @@
 version: "3"
 services:
-  sample:
+  mongo_process:
     build:
-      context: .
-      dockerfile: docker/Dockerfile.test
+      context: ./docker
+      dockerfile: Dockerfile
+    image: mongo_process
+    hostname: mongo_process
+    volumes:
+      - .:/usr/src/app
