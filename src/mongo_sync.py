@@ -2,23 +2,10 @@ from src.mongo_pattern import MongoUriPattern
 from src.mongo_pool import MongoConnectPool
 from src.basic import TestBasic
 
-from abc import ABC, abstractmethod
+
 from concurrent.futures import ThreadPoolExecutor
 from pymongo import MongoClient
 from time import sleep
-
-
-class MongoSyncFunc(ABC):
-
-    """抽象類別
-
-    使用 MongoSync 類別
-    加入 funcs 的規範
-    """
-
-    @abstractmethod
-    def mongo_func(self, data, **kwargs):
-        pass
 
 
 class MongoSync(TestBasic):
