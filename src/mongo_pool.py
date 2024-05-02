@@ -177,9 +177,9 @@ class MongoConnectPool():
         """
         try:
             if len(self.pool) < self.max_connect:
-                time_uuid = uuid.uuid1()
-                if time_uuid not in self.pool.keys():
-                    return time_uuid
+                connect_uuid = uuid.uuid1()
+                if connect_uuid not in self.pool.keys():
+                    return connect_uuid
             else:
                 return None
         except Exception as err:
@@ -192,15 +192,15 @@ class MongoConnectPool():
             _type_: _description_
         """
         try:
-            time_uuid = self.generate_uuid()
-            if time_uuid != None:
-                self.pool[time_uuid] = MongoConnect(
+            connect_uuid = self.generate_uuid()
+            if connect_uuid != None:
+                self.pool[connect_uuid] = MongoConnect(
                     mongo_host=self.uri,
-                    name=f'{self.connect_name} {time_uuid}'
-                )
-                self.idle.append(time_uuid)
-                self.logger.info(f'新增連線 {time_uuid}')
-                return time_uuid
+                    name=f'{self.connect_name} {connect_uuid}'
+                ).get_mongo_client()
+                self.idle.append(connect_uuid)
+                self.logger.info(f'新增連線 {connect_uuid}')
+                return connect_uuid
             else:
                 return None
         except Exception as err:
@@ -230,28 +230,29 @@ class MongoConnectPool():
         """
         return self.in_use
 
-    def del_connect(self, time_uuid: str):
+    def del_connect(self, connect_uuid: str):
         """刪除連線
 
         Args:
-            time_uuid (str): _description_
+            connect_uuid (str): _description_
         """
         try:
-            self.logger.info(f"執行刪除連線: {time_uuid}")
+            self.logger.info(f"執行刪除連線: {connect_uuid}")
 
-            if time_uuid in self.idle:
-                self.idle.remove(time_uuid)
+            if connect_uuid in self.idle:
+                self.idle.remove(connect_uuid)
                 self.logger.debug("檢查閒置連線")
 
-            if time_uuid in self.in_use:
-                self.in_use.remove(time_uuid)
+            if connect_uuid in self.in_use:
+                self.in_use.remove(connect_uuid)
                 self.logger.debug("檢查使用中連線")
 
-            if self.pool.get(time_uuid):
-                del self.pool[time_uuid]
-                self.logger.info(f"{time_uuid} 已刪除")
+            if self.pool.get(connect_uuid):
+                self.pool[connect_uuid].close()
+                del self.pool[connect_uuid]
+                self.logger.info(f"{connect_uuid} 已刪除")
             else:
-                self.logger.info(f"{time_uuid} 不存在")
+                self.logger.info(f"{connect_uuid} 不存在")
         except Exception as err:
             self.logger.error(f'刪除連線 發生錯誤: {err}')
 
@@ -264,6 +265,7 @@ class MongoConnectPool():
             self.logger.info(f"執行取得連線")
             connect_uuid = random.choice(self.idle)
             self.switch_status(connect_uuid)
+            return connect_uuid
         except Exception as err:
             self.logger.error(f'取得連線 發生錯誤: {err}')
 

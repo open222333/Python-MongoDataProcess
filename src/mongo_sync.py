@@ -17,7 +17,7 @@ class MongoSyncFunc(ABC):
     """
 
     @abstractmethod
-    def mongo_func(self, data):
+    def mongo_func(self, data, **kwargs):
         pass
 
 
@@ -133,52 +133,63 @@ class MongoSync(TestBasic):
             func (_type_): 執行的函式
             database (str): 資料庫.
             limit (int, optional): 執行幾筆
+            mongo_client : 若處理函式的 mongo 主機與批量資料處理的不同, 需帶入 mongo_client
         """
-        query = kwargs.get('query', {})
-        limit = int(kwargs.get('limit', 0))
-        mongo_client = kwargs.get('mongo_client')
-        if not isinstance(mongo_client, MongoClient):
-            raise TypeError('mongo_client 設定錯誤')
-        col = mongo_client[database][collection]
+        try:
+            query = kwargs.get('query', {})
+            limit = int(kwargs.get('limit', 0))
+            connect_uuid = self.mongo_pool.get_connect()
+            mongo_client = self.mongo_pool.pool[connect_uuid]
 
-        if limit:
-            self.logger.debug(f'限制執行 {limit} 筆')
+            # 若處理函式的 mongo 主機不同, 需帶入 mongo_client
+            func_mongo_client = kwargs.get('mongo_client', mongo_client)
 
-        total = self.get_mongo_total_amount(
-            mongo_client=mongo_client, collection=collection, query=query)
-        self.logger.info(f'總量: {total}')
-        start = int(kwargs.get('start', 0))
-        per = self.size
-        count = 0
-        stop_process = False
-        while True:
+            if not isinstance(mongo_client, MongoClient):
+                raise TypeError('mongo_client 設定錯誤')
+            col = mongo_client[database][collection]
 
-            end = start + per
-            if end >= total:
-                end = total
+            if limit:
+                self.logger.debug(f'限制執行 {limit} 筆')
 
-            datas = col.find(query=query)[start:end]
-            for data in datas:
-                count += 1
-                self.logger.debug(f'{count}/{total}')
-                func(data=data, mongo_client=mongo_client)
+            total = self.get_mongo_total_amount(
+                mongo_client=mongo_client, database=database, collection=collection, query=query)
+            self.logger.info(f'總量: {total}')
+            start = int(kwargs.get('start', 0))
+            per = self.size
+            count = 0
+            stop_process = False
+            while True:
 
-                # 測試模式 每筆停止一秒
-                if self.test:
-                    sleep(self.sleep_sec)
+                end = start + per
+                if end >= total:
+                    end = total
 
-                if limit != None:
-                    if count == limit:
-                        self.logger.debug(f'已執行 {count} 筆, 中止程式')
-                        stop_process = True
-                        break
+                datas = col.find(query)[start:end]
+                for data in datas:
+                    count += 1
+                    self.logger.debug(f'{count}/{total}')
+                    func(data=data, mongo_client=func_mongo_client)
 
-            if end == total or stop_process:
-                break
+                    # 測試模式 每筆停止一秒
+                    if self.test:
+                        sleep(self.sleep_sec)
 
-            start += per
+                    if limit != None:
+                        if count == limit:
+                            self.logger.debug(f'已執行 {count} 筆, 中止程式')
+                            stop_process = True
+                            break
 
-    def add_func(self, func, database: str, collection: str, limit: int = 0,  query: dict = {}, mongo_client=None, **kwargs):
+                if end == total or stop_process:
+                    break
+
+                start += per
+
+            self.mongo_pool.del_connect(connect_uuid)
+        except Exception as err:
+            self.logger.error(f'處理 mongo 資料 發生錯誤: {err}', exc_info=True)
+
+    def add_func(self, func, database: str, collection: str, limit: int = 0,  query: dict = {}, **kwargs):
         """新增 要執行的函式
 
         Args:
@@ -193,10 +204,10 @@ class MongoSync(TestBasic):
             'collection': collection,
             'limit': limit,
             'query': query,
-            'mongo_client': mongo_client,
             **kwargs
         }
-        self.logger.info(f'新增函式: {func} {self.funcs[func]}')
+        self.logger.info('新增函式')
+        self.logger.debug(f'新增函式: {func} {self.funcs[func]}')
 
     def run(self, workers: int = 3):
         """執行
@@ -206,7 +217,8 @@ class MongoSync(TestBasic):
         """
         with ThreadPoolExecutor(max_workers=workers) as executor:
             for func, details in self.funcs.items():
-                self.logger.info(f'執行: {func} {details}')
+                self.logger.info('執行函式')
+                self.logger.debug(f'執行函式: {func} {details}')
                 if isinstance(details, dict):
                     executor.submit(
                         self.process_mongo_datas,
