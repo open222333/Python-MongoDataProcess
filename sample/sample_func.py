@@ -82,7 +82,11 @@ class Sample(TestBasic, MongoSyncFunc):
         """
         try:
             col = self.mongo_client[database][collection]
+            if data.get('_id'):
+                del data['_id']
+
             old_data = col.find_one(query)
+
             if len(query) > 0 and old_data:
                 update_query = {}
                 if unset:
@@ -91,6 +95,8 @@ class Sample(TestBasic, MongoSyncFunc):
                         unset_data[filed] = 1
                     update_query['$unset'] = unset_data
                 data['modified_date'] = datetime.now()
+                if data.get('_id'):
+                    del data['_id']
                 update_query['$set'] = data
                 if not self.test:
                     if isinstance(check_colunms, list) and len(check_colunms) > 0:
@@ -108,14 +114,12 @@ class Sample(TestBasic, MongoSyncFunc):
                         )
 
                     if is_change:
-                        self.logger.debug(
-                            f'更新資料 mongodb {database}.{collection}\n查詢條件: {query}\n內容: {update_query}\n')
+                        self.logger.debug(f'更新資料 mongodb {database}.{collection}\n查詢條件: {query}\n內容: {update_query}\n')
                         col.update_one(query, update_query)
             else:
                 data['creation_date'] = datetime.now()
                 data['modified_date'] = datetime.now()
-                self.logger.debug(
-                    f'新增資料 mongodb {database}.{collection}\n內容: {data}\n')
+                self.logger.debug(f'新增資料 mongodb {database}.{collection}\n內容: {data}\n')
                 if not self.test:
                     col.insert_one(data)
 
