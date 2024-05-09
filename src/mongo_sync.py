@@ -193,8 +193,7 @@ class MongoSync(TestBasic):
             'query': query,
             **kwargs
         }
-        self.logger.info('新增函式')
-        self.logger.debug(f'新增函式: {func} {self.funcs[func]}')
+        self.logger.debug(f'新增函式: {func.__self__.__class__.__name__} {func.__name__} 參數: {self.funcs[func]}')
 
     def run(self, workers: int = 3):
         """執行
@@ -204,8 +203,7 @@ class MongoSync(TestBasic):
         """
         with ThreadPoolExecutor(max_workers=workers) as executor:
             for func, details in self.funcs.items():
-                self.logger.info('執行函式')
-                self.logger.debug(f'執行函式: {func} {details}')
+                self.logger.debug(f'執行函式: {func.__self__.__class__.__name__} {func.__name__} 參數: {details}')
                 if isinstance(details, dict):
                     executor.submit(
                         self.process_mongo_datas,
