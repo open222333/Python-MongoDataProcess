@@ -44,11 +44,16 @@ class TestBasic():
         self.size = size
 
 
-class MongoFuncBasic(TestBasic, MongoSyncFunc):
+class MongoFuncBasic(TestBasic):
 
-    def __init__(self, database: str, collection: str, log_name: str = 'Sample', **kwargs) -> None:
-        """
-            logger (logging, optional): 可指定自定義 Log
+    def __init__(self, database: str, collection: str, log_name: str = 'MongoFuncBasic', **kwargs) -> None:
+        """不包含 Mongo Sync Func 類別
+        基本測試功能
+        檢查新舊資料是否改變 並新增或更新至mongo
+
+            database (str): _description_
+            collection (str): _description_
+            log_name (str, optional): _description_. Defaults to 'MongoFuncBasic'.
             name  (str, optional): Defaults to '未命名 Mongo 連線'
             mongo_host (str, optional): Defaults to '127.0.0.1'
             mongo_port (str, optional): Defaults to '27017'
@@ -76,20 +81,19 @@ class MongoFuncBasic(TestBasic, MongoSyncFunc):
         try:
             # self.logger.debug(f'舊資料: {old_data} 新資料: {new_data}')
             if len(columns) > 0:
+                self.logger.debug(f'指定比對欄位 {columns}')
                 for column_name in columns:
                     if column_name not in exclude_columns:
                         if old_data.get(column_name) or old_data.get(column_name) == False:
                             if old_data.get(column_name) != new_data.get(column_name):
                                 self.logger.debug(f'{column_name} 舊資料: {old_data.get(column_name)} 新資料: {new_data.get(column_name)}')
                                 return True
-                            # else:
-                            #     self.logger.debug(f'a {column_name} 舊資料: {old_data.get(column_name)} 新資料: {new_value}')
+                            else:
+                                self.logger.debug(f'{column_name} 無變化')
                         else:
                             if column_name not in old_data.keys():
                                 self.logger.debug(f'舊資料 不存在{column_name}')
                                 return True
-                            # else:
-                            #     self.logger.debug(f'b {column_name} 舊資料: {old_data.get(column_name)} 新資料: {new_value}')
 
             for column_name, new_value in new_data.items():
                 if column_name not in exclude_columns:
@@ -97,15 +101,13 @@ class MongoFuncBasic(TestBasic, MongoSyncFunc):
                         if old_data.get(column_name) != new_value:
                             self.logger.debug(f'{column_name} 舊資料: {old_data.get(column_name)} 新資料: {new_value}')
                             return True
-                        # else:
-                        #     self.logger.debug(f'c {column_name} 舊資料: {old_data.get(column_name)} 新資料: {new_value}')
+                        else:
+                            self.logger.debug(f'{column_name} 無變化')
                     else:
                         # 沒有 column_name
                         if column_name not in old_data.keys():
                             self.logger.debug(f'舊資料 不存在{column_name}')
                             return True
-                        # else:
-                        #     self.logger.debug(f'd {column_name} 舊資料: {old_data.get(column_name)} 新資料: {new_value}')
 
             return False
         except Exception as err:
@@ -176,3 +178,20 @@ class MongoFuncBasic(TestBasic, MongoSyncFunc):
                             col.create_index(index_name)
         except Exception as err:
             self.logger.error(f'儲存資料至mongo 發生錯誤: {err}', exc_info=True)
+
+
+class MongoSyncFuncBasic(MongoFuncBasic, MongoSyncFunc):
+
+    def __init__(self, database: str, collection: str, log_name: str = 'MongoFuncBasic', **kwargs) -> None:
+        """
+            database (str): _description_
+            collection (str): _description_
+            log_name (str, optional): _description_. Defaults to 'MongoSyncFuncBasic'.
+            name  (str, optional): Defaults to '未命名 Mongo 連線'
+            mongo_host (str, optional): Defaults to '127.0.0.1'
+            mongo_port (str, optional): Defaults to '27017'
+            mongo_username (str, optional)
+            mongo_password (str, optional)
+            mongo_client (MongoClient) : pymongo 連線物件
+        """
+        super().__init__(database, collection, log_name, **kwargs)
