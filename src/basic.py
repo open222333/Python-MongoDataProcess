@@ -11,9 +11,9 @@ class TestBasic():
         """測試功能
 
         Args:
-            log_name (str): _description_
-            log_level : log等級
-            size : 每次執行幾筆資料
+            log_name (str): log名稱, 預設 TestBasic
+            log_level : log等級, 預設 WARNING
+            size : 每次執行幾筆資料, 預設 100
         """
         self.size = kwargs.get('size', 100)  # 設置 每次執行幾筆資料
         self.logger = Log(log_name)
@@ -46,14 +46,14 @@ class TestBasic():
 
 class MongoFuncBasic(TestBasic):
 
-    def __init__(self, database: str, collection: str, log_name: str = 'MongoFuncBasic', **kwargs) -> None:
+    def __init__(self, log_name: str = 'MongoFuncBasic', **kwargs) -> None:
         """不包含 Mongo Sync Func 類別
         基本測試功能
         檢查新舊資料是否改變 並新增或更新至mongo
 
-            database (str): _description_
-            collection (str): _description_
-            log_name (str, optional): _description_. Defaults to 'MongoFuncBasic'.
+            log_name (str, optional): log名稱. Defaults to 'MongoFuncBasic'.
+            log_level : log等級, 預設 WARNING
+            size : 每次執行幾筆資料, 預設 100
             name  (str, optional): Defaults to '未命名 Mongo 連線'
             mongo_host (str, optional): Defaults to '127.0.0.1'
             mongo_port (str, optional): Defaults to '27017'
@@ -63,8 +63,6 @@ class MongoFuncBasic(TestBasic):
         """
         super().__init__(log_name, **kwargs)
         self.mongo_client = MongoConnect(**kwargs).get_mongo_client()
-        self.database = database
-        self.collection = collection
 
     def has_change(self, old_data: dict, new_data: dict, columns: list = [], exclude_columns: list = []):
         """資料是否有更改
@@ -182,11 +180,11 @@ class MongoFuncBasic(TestBasic):
 
 class MongoSyncFuncBasic(MongoFuncBasic, MongoSyncFunc):
 
-    def __init__(self, database: str, collection: str, log_name: str = 'MongoFuncBasic', **kwargs) -> None:
+    def __init__(self, log_name: str = 'MongoSyncFuncBasic', **kwargs) -> None:
         """
-            database (str): _description_
-            collection (str): _description_
-            log_name (str, optional): _description_. Defaults to 'MongoSyncFuncBasic'.
+            log_name (str, optional): log名稱. Defaults to 'MongoSyncFuncBasic'.
+            log_level : log等級, 預設 WARNING
+            size : 每次執行幾筆資料, 預設 100
             name  (str, optional): Defaults to '未命名 Mongo 連線'
             mongo_host (str, optional): Defaults to '127.0.0.1'
             mongo_port (str, optional): Defaults to '27017'
@@ -194,4 +192,4 @@ class MongoSyncFuncBasic(MongoFuncBasic, MongoSyncFunc):
             mongo_password (str, optional)
             mongo_client (MongoClient) : pymongo 連線物件
         """
-        super().__init__(database, collection, log_name, **kwargs)
+        super().__init__(log_name, **kwargs)
