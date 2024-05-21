@@ -80,6 +80,7 @@ class MongoSync(TestBasic):
         else:
             self.logger.info(f'生成 mongo uri : {uri}')
         self.uri = uri
+        return uri
 
     def get_mongo_total_amount(self, mongo_client: MongoClient, collection: str, database: str, query: dict = {}):
         """取得 mongo 資料總數量
