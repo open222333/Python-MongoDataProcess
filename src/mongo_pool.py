@@ -41,7 +41,7 @@ class MongoConnect():
         """
         return self.get_mongo_client()
 
-    def get_mongo_client(self, **kwargs):
+    def get_mongo_client(self, **kwargs) -> MongoClient:
         """取得 mongo 連線
 
         Returns:

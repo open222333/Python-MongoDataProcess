@@ -112,7 +112,7 @@ class MongoFuncBasic(TestBasic):
             self.logger.error(f'檢查資料是否更動 發生錯誤: {err}\n檢查欄位: {columns}\n排除欄位: {exclude_columns}\n新資料: {new_data}\n舊資料: {old_data}', exc_info=True)
             return True
 
-    def save_to_mongo(self, database: str, collection: str, data: dict, unset: list = None, index_names: list = [], query: dict = {}, check_colunms: list = [], exclude_columns: list = ['modified_date']):
+    def save_to_mongo(self, database: str, collection: str, data: dict, unset: list = None, index_names: list = [], query: dict = {}, check_colunms: list = [], exclude_columns: list = ['modified_date'], **kwargs):
         """儲存資料至mongo
 
         Args:
@@ -124,8 +124,18 @@ class MongoFuncBasic(TestBasic):
             index_names (list, optional): 索引欄位 若不存在則建立索引. Defaults to [].
             exclude_columns (list, optional): 指定排除比對的欄位. Defaults to ['modified_date'].
             check_colunm (list[str], optional): 更新時 只檢查指定欄位是否更改. Defaults to [].
+            name: 顯示辨識用名稱
         """
         try:
+            name = kwargs.get('name', None)
+
+            if name:
+                self.logger.info(f'儲存資料 {name} 至mongo {database} {collection}')
+            else:
+                self.logger.info(f'儲存資料至mongo {database} {collection}')
+            # 更新或新增 則設定成 True
+            data_changes = False
+
             col = self.mongo_client[database][collection]
             if data.get('_id'):
                 del data['_id']
@@ -159,21 +169,29 @@ class MongoFuncBasic(TestBasic):
                         )
 
                     if is_change:
-                        self.logger.debug(f'更新資料 mongodb {database}.{collection}\n查詢條件: {query}\n內容: {update_query}\n')
+                        self.logger.info(f'更新資料 mongodb {database}.{collection} 查詢條件: {query}')
+                        self.logger.debug(f'內容: {update_query}')
                         col.update_one(query, update_query)
+                        data_changes = True
             else:
                 data['creation_date'] = datetime.now()
                 data['modified_date'] = datetime.now()
-                self.logger.debug(f'新增資料 mongodb {database}.{collection}\n內容: {data}\n')
+                self.logger.info(f'新增資料 mongodb {database}.{collection}')
+                self.logger.debug(f'內容: {data}')
                 if not self.test:
                     col.insert_one(data)
+                    data_changes = True
 
             if len(index_names) > 0:
+                self.logger.info(f'新增 index {database}.{collection}')
+                self.logger.debug(f'內容: {index_names}')
                 existing_indexes = col.index_information()
                 for index_name in index_names:
                     if index_name not in existing_indexes:
                         if not self.test:
                             col.create_index(index_name)
+
+            return data_changes
         except Exception as err:
             self.logger.error(f'儲存資料至mongo 發生錯誤: {err}', exc_info=True)
 
